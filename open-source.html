@@ -2,11 +2,21 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; frame-src 'none'">
+<meta name="robots" content="noindex, follow">
+<meta name="referrer" content="no-referrer">
 <meta http-equiv="refresh" content="0;url=sobre.html">
-<title>Redirigiendo…</title>
-<link rel="canonical" href="sobre.html">
+<title>Redirigiendo a «Sobre privtr.ee»</title>
+<link rel="canonical" href="https://privtr.ee/sobre.html">
+<link rel="stylesheet" href="assets/app.css">
 </head>
-<body style="background:#05070a;color:#8b9bb4;font-family:system-ui;padding:2rem;text-align:center">
-<p><a href="sobre.html" style="color:#0a84ff">Continuar</a></p>
+<!-- URL antigua. En producción esto debería ser un 301 en el servidor
+     (ver deploy/); esta página es sólo el respaldo para hosting estático. -->
+<body class="bg-void text-mist font-sans antialiased min-h-screen flex items-center justify-center px-5">
+  <main class="text-center">
+    <p class="text-sm text-steel mb-4">Esta página se ha movido.</p>
+    <a href="sobre.html" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-neon text-void text-sm font-semibold hover:bg-neon-glow transition">Continuar a «Sobre privtr.ee»</a>
+  </main>
 </body>
 </html>

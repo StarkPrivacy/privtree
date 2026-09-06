@@ -51,9 +51,50 @@
 @tailwind utilities;
 
 @layer base {
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body { font-family: 'Inter', system-ui, sans-serif; }
+
+  /* Foco visible para teclado. Muchos controles llevan focus:outline-none de
+     Tailwind; sin esto, navegar con Tab es imposible. */
+  :focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 1px;
+  }
 }
+
+/* Respeta a quien pide menos movimiento (mareos, vestibular). */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .opacity-0-init { opacity: 1 !important; }
+}
+
+/* Enlace de salto al contenido: sólo visible al tabular. */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -120%);
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  background: #0a84ff;
+  color: #05070a;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform 0.18s ease;
+}
+.skip-link:focus { transform: translate(-50%, 0); }
 
 /* ------------------------------------------------------------------ *
  *  Iconos SVG autoalojados (js/icons.js) — hereda tamaño/color del texto

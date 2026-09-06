@@ -3,6 +3,48 @@
 Objetivo: poder llevar **la gestión y los usuarios actuales de privacidad.me**
 (basado en LinkStack) a privtr.ee sin pérdidas y de forma repetible.
 
+## 0. Compatibilidad de URLs (leer antes que nada)
+
+La dirección pública es **`privtr.ee/@usuario`**. Esto ya funciona:
+
+| Entrada | Resultado |
+|---|---|
+| `privtr.ee/@ana` | perfil de Ana, **200 OK** (reescritura a `u.html`, ver `deploy/`) |
+| `privtr.ee/u.html?u=ana` | **301** → `privtr.ee/@ana` |
+| `privacidad.me/@ana` | **301** → `privtr.ee/@ana` |
+| `privtree.com/@ana` | **301** → `privtr.ee/@ana` |
+| `privtr.ee/@noexiste` | página "aún no publicada" con opción de reclamarlo |
+| ruta desconocida | `404.html` |
+
+En hosting estático sin reescrituras (GitHub Pages) `404.html` hace de router y
+resuelve `/@ana` igual, sólo que con estado 404 en vez de 200. Para producción
+usa una de las configuraciones de `deploy/` (nginx, Apache, Caddy).
+
+Pruébalo en local imitando los dos escenarios:
+
+```sh
+python3 deploy/dev-server.py            # como nginx/Apache  (/@ana -> 200)
+python3 deploy/dev-server.py 8098 --pages   # como GitHub Pages (/@ana -> 404.html)
+```
+
+### Nombres de usuario: dos cambios que afectan al traslado
+
+1. **Acentos y espacios.** `sanitizeUsername()` translitera en vez de borrar:
+   `@José Pérez` → `@jose-perez`, `@Ñoño` → `@nono`, `@Ana.Ruiz` → `@ana-ruiz`.
+   (Antes se borraban los caracteres no ASCII y `maría` acababa en `mara`.)
+   Todo usuario cuyo `@` cambie queda anotado en `_migrationNotes` con el aviso
+   de crear la **redirección 301 desde la dirección antigua**.
+2. **Nombres reservados.** `PrivStore.RESERVED_USERNAMES` bloquea los `@` que
+   chocan con rutas del sitio (`admin`, `panel`, `faq`, `assets`, `js`…) y los
+   suplantables (`soporte`, `seguridad`, `oficial`…). En el alta self-service se
+   rechazan; en la importación **no se descartan**, se marcan para que decidas
+   (renombrar al usuario y redirigir).
+
+**Colisiones.** Si dos usuarios distintos acaban en el mismo `@` (p. ej.
+`José Pérez` y `jose.perez` → ambos `jose-perez`), el segundo recibe sufijo
+(`jose-perez-2`) y un aviso. Sin esto, la importación sobrescribiría el perfil
+del primero **en silencio**.
+
 ## 1. Esquema del perfil (versionado)
 
 Cada perfil es un objeto JSON con `schemaVersion` (entero). La versión actual
@@ -90,13 +132,56 @@ y se muestra en el informe de importación del panel admin. Revisar:
 1. Congelar escrituras en privacidad.me.
 2. Exportar de LinkStack (BD → JSON con la forma de arriba; si el panel de
    LinkStack no exporta ese shape, un `SELECT` de `users` + `links` a JSON vale).
-3. `fromLinkStack()` → revisar `_migrationNotes` → `saveImported()`.
-4. Verificar una muestra de perfiles en `u.html?u=<username>`.
-5. Redirigir `privacidad.me/@usuario` → `privtr.ee/@usuario` (mismo `username`).
+3. `fromLinkStack()` → **revisar `_migrationNotes` de arriba abajo** →
+   `saveImported()`. Los tres avisos que hay que resolver sí o sí:
+   - `@` reservado → renombrar al usuario y anotar la redirección.
+   - colisión con sufijo `-2` → decidir quién se queda el `@` original.
+   - `@` cambiado al normalizar → añadir su 301.
+4. Verificar una muestra de perfiles en `/@<usuario>`.
+5. Publicar el mapa de redirecciones `privacidad.me/@viejo → privtr.ee/@nuevo`.
+   Las reglas genéricas de `deploy/` cubren el caso "mismo `@`"; las excepciones
+   del punto 3 hay que añadirlas a mano.
+6. Avisar por correo a los usuarios cuyo `@` haya cambiado.
+
+### Checklist de lanzamiento
+
+- [ ] DNS de `privtr.ee` apuntando al servidor; TLS emitido.
+- [ ] Configuración de `deploy/` instalada (reescritura `/@usuario` + cabeceras).
+- [ ] Redirecciones 301 desde `privacidad.me` y `privtree.com` verificadas.
+- [ ] Importación hecha y `_migrationNotes` resueltas.
+- [ ] `robots.txt`: quitar el bloque PRE-LANZAMIENTO y activar el de PRODUCCIÓN.
+- [ ] `sitemap.xml` actualizado (y perfiles añadidos por el backend).
+- [ ] Comprobar `og:` de un perfil real con el depurador de X/Facebook.
+- [ ] **Inyectar `og:`/`title` en servidor** para los perfiles (ver abajo).
 
 ## 4. Cuando exista backend
 
 Estos mismos objetos son el contrato con el servidor: el endpoint de
 importación del backend debe aceptar el formato de `exportAll()` y aplicar la
 misma normalización/saneado que `normalize()` + `safeUrl()`/`safeImg()` del
-cliente (en PHP: `htmlspecialchars` + validación de esquema de URL).
+cliente (en PHP: `htmlspecialchars` + validación de esquema de URL), además de
+la lista de reservados y la transliteración de `sanitizeUsername()`.
+
+### Metadatos de compartición (importante para un "link in bio")
+
+Ahora mismo `og:title`, `og:description` y `og:image` de un perfil los actualiza
+**JavaScript** (`js/profile-view.js`). Eso vale para el navegador, pero **los
+rastreadores de WhatsApp, Telegram, X y Facebook no ejecutan JS**: verán los
+valores por defecto del HTML, no los del usuario.
+
+Cuando el backend sirva `/@usuario`, debe **renderizar en servidor** al menos:
+
+```html
+<title>{nombre} — privtr.ee</title>
+<meta name="description"        content="{bio}">
+<link rel="canonical"           href="https://privtr.ee/@{usuario}">
+<meta property="og:type"        content="profile">
+<meta property="og:title"       content="{nombre} — privtr.ee">
+<meta property="og:description" content="{bio}">
+<meta property="og:url"         content="https://privtr.ee/@{usuario}">
+<meta property="og:image"       content="{avatar absoluto o og.jpg}">
+<meta name="twitter:card"       content="summary">
+```
+
+Los campos `ogTitle` y `ogDesc` del esquema existen justo para esto: si el
+usuario los rellena, tienen prioridad sobre `name`/`bio`.

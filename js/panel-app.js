@@ -270,7 +270,8 @@ function setPreviewDevice(dev) {
 }
 
 function refresh() {
-  document.getElementById('public-link').href = 'u.html?u=' + encodeURIComponent(state.username);
+  // Navegación interna: u.html?u=… funciona con y sin reescrituras del servidor.
+  document.getElementById('public-link').href = PrivStore.profileHref(state.username);
   const wrap = document.getElementById('av-wrap');
   if (wrap) {
     if (state.avatar) wrap.innerHTML = '<img src="' + PrivStore.esc(state.avatar) + '" class="w-full h-full object-cover">';
@@ -292,13 +293,19 @@ function renderDomains() {
   const u = state.username || '…';
   el.innerHTML = PrivStore.DOMAINS.map(function (d) {
     return '<div class="flex items-center gap-2 py-1">' +
-      '<span class="flex-1 text-[11px] font-mono text-mist truncate">' + d + '/@' + u + '</span>' +
-      '<button type="button" onclick="copyDomain(\'' + d + '\')" class="text-[10px] px-2 py-0.5 rounded border border-neon/30 text-neon">Copiar</button></div>';
+      '<span class="flex-1 text-[11px] font-mono text-mist truncate">' + PrivStore.esc(d) + '/@' + PrivStore.esc(u) + '</span>' +
+      '<button type="button" onclick="copyDomain()" class="text-[10px] px-2 py-0.5 rounded border border-neon/30 text-neon hover:bg-neon/10 transition">Copiar</button></div>';
   }).join('');
 }
-function copyDomain(domain) {
-  navigator.clipboard.writeText('https://' + domain + '/@' + state.username);
-  showToast('Copiado');
+function copyDomain() {
+  // Siempre la URL canónica del dominio final, que es la que se comparte.
+  const url = PrivStore.profileUrl(state);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function () { showToast('Enlace copiado'); },
+      function () { showToast('No se pudo copiar'); });
+  } else {
+    showToast('No se pudo copiar');
+  }
 }
 
 function orderedSocialDefs() {

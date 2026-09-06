@@ -3,23 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-src 'none'; media-src 'self'">
+<meta name="robots" content="index, follow">
 <meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#05070a">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305070a'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%230a84ff' stroke-width='3'/%3E%3C/svg%3E">
-  <title>privtr.ee — Tu perfil, con privacidad</title>
-  <meta name="description" content="Tu página de enlaces sin vender tu actividad. privtr.ee">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="canonical" href="https://privtr.ee/">
+<title>privtr.ee — Tu perfil de enlaces, con privacidad</title>
+<meta name="description" content="Crea tu página de enlaces sin cookies de publicidad y sin vender tu actividad. Gratis, con tarjeta de contacto opcional.">
+<meta property="og:site_name" content="privtr.ee">
+<meta property="og:locale" content="es_ES">
+<meta property="og:type" content="website">
+<meta property="og:title" content="privtr.ee — Tu perfil de enlaces, con privacidad">
+<meta property="og:description" content="Crea tu página de enlaces sin cookies de publicidad y sin vender tu actividad. Gratis, con tarjeta de contacto opcional.">
+<meta property="og:url" content="https://privtr.ee/">
+<meta property="og:image" content="https://privtr.ee/assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="privtr.ee — tu perfil, con privacidad">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="privtr.ee — Tu perfil de enlaces, con privacidad">
+<meta name="twitter:description" content="Crea tu página de enlaces sin cookies de publicidad y sin vender tu actividad. Gratis, con tarjeta de contacto opcional.">
+<meta name="twitter:image" content="https://privtr.ee/assets/img/og.jpg">
 <link rel="stylesheet" href="assets/app.css">
 <script src="js/icons.js"></script>
 </head>
 <body class="bg-void font-sans text-mist antialiased selection:bg-neon/30 selection:text-white">
+<a href="#contenido" class="skip-link">Saltar al contenido</a>
 
 <div class="banner-mig relative z-[60]">
   <div class="max-w-6xl mx-auto px-4 py-2.5 text-center text-[12px] sm:text-[13px] text-mist/95 leading-snug">
-    <strong class="text-white font-medium">Importante:</strong>
-    a partir del día <span class="text-neon font-semibold">X</span>, las direcciones
-    <span class="font-mono text-white/90">privacidad.me/@usuario</span> dejarán de estar disponibles.
-    Usa <span class="font-mono text-neon">privtr.ee/@tu-nombre</span> — mismos datos, mismo perfil.
-    <span class="text-steel/70">(Fecha concreta cuando cierren las pruebas.)</span>
+    <strong class="text-white font-medium">Traslado en curso:</strong>
+    los perfiles de <span class="font-mono text-white/90">privacidad.me</span> se mueven a
+    <span class="font-mono text-neon">privtr.ee</span> — mismo perfil, mismos enlaces.
+    Las direcciones antiguas seguirán redirigiendo.
+    <a href="faq.html#traslado" class="underline decoration-neon/40 underline-offset-2 hover:text-white transition">Cómo te afecta</a>
   </div>
 </div>
 
@@ -43,6 +64,7 @@
   </div>
 </nav>
 
+<main id="contenido">
 <section class="relative min-h-[calc(100vh-7rem)] flex items-center pt-10 pb-16 sm:pt-14 sm:pb-20 overflow-hidden">
   <div class="absolute inset-0 cyber-grid opacity-50 pointer-events-none"></div>
   <div class="absolute inset-0 bg-gradient-to-b from-void via-transparent to-void pointer-events-none"></div>
@@ -68,9 +90,12 @@
           <div class="w-full opacity-0-init animate-slide-up animate-delay-200" style="animation-fill-mode:forwards">
             <div class="p-1.5 rounded-2xl bg-panel border border-white/10 glow-blue">
               <form action="registro.html" method="get" class="flex flex-col sm:flex-row gap-2">
+                <label for="hero-username" class="sr-only">Elige tu nombre de usuario en privtr.ee</label>
                 <div class="flex flex-1 items-center bg-void rounded-xl border border-white/5 overflow-hidden min-w-0">
-                  <span class="pl-3.5 text-sm text-steel/80 font-mono shrink-0">privtr.ee/</span>
-                  <input type="text" name="username" placeholder="tu-nombre" required
+                  <span class="pl-3.5 text-sm text-steel/80 font-mono shrink-0" aria-hidden="true">privtr.ee/</span>
+                  <input id="hero-username" type="text" name="username" placeholder="tu-nombre" required
+                    autocomplete="off" autocapitalize="none" spellcheck="false"
+                    pattern="[A-Za-z0-9_-]{2,32}" maxlength="32"
                     class="flex-1 bg-transparent text-white placeholder-steel/40 px-2 py-3.5 text-sm focus:outline-none min-w-0">
                 </div>
                 <button type="submit" class="px-6 py-3.5 rounded-xl bg-neon text-void font-semibold text-sm hover:bg-neon-glow transition shrink-0">
@@ -214,6 +239,7 @@
     <a href="registro.html" class="inline-flex px-7 py-3.5 rounded-xl bg-neon text-void font-semibold text-sm hover:bg-neon-glow transition glow-blue">Crear mi privtr.ee</a>
   </div>
 </section>
+</main>
 
 <footer class="border-t border-white/5 pt-14 pb-10">
   <div class="max-w-6xl mx-auto px-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-10 text-sm">
@@ -247,12 +273,45 @@
       </ul>
     </div>
   </div>
-  <div class="max-w-6xl mx-auto px-5 mt-12 pt-6 border-t border-white/5 text-[11px] text-steel/45 flex flex-col sm:flex-row justify-between gap-2">
+  <div class="max-w-6xl mx-auto px-5 mt-12 pt-6 border-t border-white/5 text-[11px] text-steel/70 flex flex-col sm:flex-row justify-between gap-2">
     <span>privtr.ee</span>
-    <span>privtree.com redirige aquí · privacidad.me será otro proyecto</span>
+    <span>privtree.com y privacidad.me/@usuario redirigen aquí</span>
   </div>
 </footer>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://privtr.ee/#website",
+      "url": "https://privtr.ee/",
+      "name": "privtr.ee",
+      "inLanguage": "es",
+      "description": "Página de enlaces orientada a la privacidad: comparte redes, proyectos y contacto sin vender tu actividad.",
+      "publisher": { "@id": "https://privtr.ee/#org" }
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://privtr.ee/#org",
+      "name": "Stark Privacy",
+      "url": "https://starkprivacy.com",
+      "logo": "https://privtr.ee/assets/img/icon-512.png",
+      "sameAs": ["https://x.com/StarkPrivacy", "https://t.me/StarkPrivacy", "https://boringprivacy.io"]
+    },
+    {
+      "@type": "WebApplication",
+      "name": "privtr.ee",
+      "url": "https://privtr.ee/",
+      "applicationCategory": "SocialNetworkingApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "es",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+    }
+  ]
+}
+</script>
 <script>
 (function () {
   function tick() {

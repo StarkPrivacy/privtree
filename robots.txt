@@ -1,3 +1,22 @@
-# Demo de interfaz en desarrollo — no indexar hasta publicación formal.
+# privtr.ee
+#
+# ⚠️  INTERRUPTOR DE LANZAMIENTO
+# Mientras el servicio esté en pruebas, este archivo bloquea TODO el rastreo.
+# El día del lanzamiento: borra el bloque "PRE-LANZAMIENTO" y descomenta el
+# bloque "PRODUCCIÓN". Las etiquetas <meta name="robots"> de cada página ya
+# están puestas con su valor definitivo, no hay que tocar el HTML.
+
+# ---------- PRE-LANZAMIENTO (activo) ----------
 User-agent: *
 Disallow: /
+
+# ---------- PRODUCCIÓN (descomentar al lanzar) ----------
+# User-agent: *
+# Allow: /
+# Disallow: /panel.html
+# Disallow: /admin.html
+# Disallow: /acceso.html
+# Disallow: /registro.html
+# Disallow: /v2.html
+#
+# Sitemap: https://privtr.ee/sitemap.xml

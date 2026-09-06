@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1018"/><stop offset="1" stop-color="#05070a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0.3" r="0.55">
+      <stop offset="0" stop-color="#0a84ff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#0a84ff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0H0V44" fill="none" stroke="#0a84ff" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#bg)"/>
+  <g transform="translate(0,285)">
+    <rect x="0" y="0" width="1200" height="630" fill="url(#grid)"/>
+    <rect x="0" y="0" width="1200" height="630" fill="url(#glow)"/>
+    <g transform="translate(88,74)">
+      <rect x="0" y="0" width="58" height="58" rx="15" fill="#05070a" stroke="#0a84ff" stroke-width="2.5"/>
+      <circle cx="29" cy="29" r="13" fill="none" stroke="#0a84ff" stroke-width="5"/>
+      <text x="78" y="42" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="34" font-weight="600" fill="#ffffff">privtr<tspan fill="#0a84ff">.ee</tspan></text>
+    </g>
+    <text x="88" y="286" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="76" font-weight="700" fill="#ffffff">Tu perfil.</text>
+    <text x="88" y="372" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="76" font-weight="700" fill="#0a84ff">Con privacidad.</text>
+    <text x="88" y="438" font-family="Helvetica Neue,Helvetica,Arial,sans-serif" font-size="26" fill="#8b9bb4">Tu página de enlaces sin vender tu actividad.</text>
+    <g transform="translate(88,486)">
+      <rect x="0" y="0" width="232" height="4" rx="2" fill="#0a84ff" opacity="0.55"/>
+    </g>
+    <text x="88" y="560" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="22" fill="#5c6b82">privtr.ee/@tu-nombre</text>
+  </g>
+</svg>

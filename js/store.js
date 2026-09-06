@@ -45,7 +45,7 @@ const PrivStore = (() => {
   function emptyContact() { return { enabled: false, title: '', note: '', email: '', phone: '', web: '', org: '', showQr: true, borderColor: '', qrStyle: 'classic' }; }
   function defaultPage(username) {
     return {
-      name: username || 'Usuario', username: (username || 'user').toLowerCase().replace(/[^a-z0-9_-]/g, ''),
+      name: username || 'Usuario', username: sanitizeUsername(username) || 'user',
       bio: '', avatar: '', bgImage: '', shape: 'rounded', btnStyle: 'outline', btnSize: 'md', btnGlow: false,
       accentColor: '#0a84ff', profileMode: 'both', verified: false, sameTab: false,
       social: emptySocial(), socialOrder: SOCIAL_DEFS.map(function(x){return x.id;}), links: [], contact: emptyContact(), ogTitle: '', ogDesc: '',
@@ -78,7 +78,58 @@ const PrivStore = (() => {
     ];
     return p;
   }
-  function sanitizeUsername(u) { return String(u || '').replace(/^@/, '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32); }
+  // Normaliza un @usuario. IMPORTANTE para la migración desde privacidad.me:
+  // los acentos se transliteran (josé -> jose), no se borran. Antes "maría"
+  // acababa en "mara" y "ñoño" en "oo", con riesgo de colisión y de perder
+  // la dirección del usuario.
+  function sanitizeUsername(u) {
+    let s = String(u == null ? '' : u).trim().replace(/^@+/, '');
+    try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+    s = s.replace(/ß/g, 'ss').replace(/æ/gi, 'ae').replace(/ø/gi, 'o').replace(/đ|ð/gi, 'd').replace(/ł/gi, 'l');
+    return s.toLowerCase()
+      .replace(/[\s._]+/g, '-')          // espacios, puntos y guiones bajos -> guion
+      .replace(/[^a-z0-9-]/g, '')        // fuera lo que no sea a-z 0-9 -
+      .replace(/-{2,}/g, '-')            // sin guiones repetidos
+      .replace(/^-+|-+$/g, '')           // sin guiones a los lados
+      .slice(0, 32).replace(/-+$/, '');
+  }
+
+  // Nombres que no puede reclamar un usuario nuevo: chocan con rutas/archivos
+  // del sitio (/@panel colisionaría con /panel.html) o son suplantables.
+  const RESERVED_USERNAMES = [
+    'index', 'u', 'panel', 'admin', 'acceso', 'registro', 'faq', 'sobre', 'donar',
+    'contacto', 'privacidad', 'terminos', 'v2', '404', 'open-source', 'assets',
+    'js', 'src', 'img', 'fonts', 'vendor', 'static', 'api', 'robots', 'sitemap',
+    'favicon', 'manifest', 'site', 'well-known', 'cdn', 'dns', 'ns', 'ns1', 'ns2',
+    'www', 'mail', 'email', 'correo', 'ftp', 'mx', 'smtp', 'imap', 'pop',
+    'root', 'administrator', 'administrador', 'moderator', 'moderador', 'staff',
+    'team', 'equipo', 'support', 'soporte', 'ayuda', 'help', 'info', 'contact',
+    'abuse', 'security', 'seguridad', 'legal', 'privacy', 'terms', 'tos', 'dmca',
+    'billing', 'pago', 'pagos', 'account', 'cuenta', 'cuentas', 'user', 'users',
+    'usuario', 'usuarios', 'login', 'logout', 'signin', 'signup', 'register',
+    'auth', 'oauth', 'sso', 'settings', 'ajustes', 'config', 'dashboard',
+    'me', 'my', 'new', 'edit', 'delete', 'null', 'undefined', 'true', 'false',
+    'test', 'demo', 'example', 'ejemplo',
+    'privtree', 'privtr', 'starkprivacy', 'boringprivacy',
+    'official', 'oficial', 'verified', 'verificado', 'soporte-privtree',
+  ];
+  const RESERVED_SET = RESERVED_USERNAMES.reduce(function (o, k) { o[k] = true; return o; }, Object.create(null));
+  function isReservedUsername(u) { return !!RESERVED_SET[sanitizeUsername(u)]; }
+
+  const USERNAME_MIN = 2;
+  // Valida un @usuario para alta self-service. Devuelve {ok, username, reason}.
+  // allowReserved: lo usa el admin / la importación (un usuario que YA existía
+  // en privacidad.me con un nombre reservado no se descarta, se marca).
+  function validateUsername(raw, opts) {
+    opts = opts || {};
+    const username = sanitizeUsername(raw);
+    if (!username) return { ok: false, username: '', reason: 'Escribe un nombre de usuario.' };
+    if (username.length < USERNAME_MIN) return { ok: false, username, reason: 'Mínimo ' + USERNAME_MIN + ' caracteres.' };
+    if (!opts.allowReserved && isReservedUsername(username)) {
+      return { ok: false, username, reason: 'Ese nombre está reservado. Elige otro.' };
+    }
+    return { ok: true, username, reason: '' };
+  }
   function load(username) {
     const u = sanitizeUsername(username);
     if (u) { try { const raw = localStorage.getItem('priv_page_' + u); if (raw) return normalize(JSON.parse(raw)); } catch (e) {} }
@@ -153,7 +204,33 @@ const PrivStore = (() => {
     arr.forEach(function (p) {
       try { const n = normalize(p); if (n.username) out.push(n); } catch (e) {}
     });
-    return out;
+    return dedupeUsernames(out);
+  }
+  // Tras normalizar, dos usuarios distintos pueden acabar con el mismo @ (p.ej.
+  // "Ana.Ruiz" y "ana ruiz" -> "ana-ruiz"). En una migración eso sobrescribiría
+  // un perfil. Aquí se resuelve con sufijo y se deja anotado.
+  function dedupeUsernames(pages) {
+    const seen = Object.create(null);
+    (pages || []).forEach(function (p) {
+      let u = sanitizeUsername(p.username);
+      if (!u) return;
+      if (seen[u]) {
+        const base = u.slice(0, 30);
+        let i = 2;
+        while (seen[base + '-' + i]) i++;
+        const nu = base + '-' + i;
+        p._migrationNotes = (p._migrationNotes || []).concat(
+          'Colisión de usuario: "@' + u + '" ya estaba ocupado en esta importación; se ha asignado "@' + nu + '". Revísalo antes de publicar.');
+        u = nu;
+      }
+      seen[u] = true;
+      p.username = u;
+      if (isReservedUsername(u)) {
+        p._migrationNotes = (p._migrationNotes || []).concat(
+          '"@' + u + '" es un nombre reservado del sistema (choca con una ruta del sitio). Hay que renombrarlo antes de publicar.');
+      }
+    });
+    return pages;
   }
   function saveImported(pages) {
     let n = 0;
@@ -208,9 +285,16 @@ const PrivStore = (() => {
       users = input.users.map(function (u) { return { ...u, links: (u.links || byUser[u.id] || []) }; });
     } else if (input && typeof input === 'object') users = [input];
 
-    return users.map(function (u) {
+    return dedupeUsernames(users.map(function (u) {
       const notes = [];
+      const origHandle = String(u.littlelink_name || u.littlelink_username || u.username || u.handle || u.name || '').trim();
       const p = defaultPage(lsPickHandle(u) || 'usuario');
+      // Si el @ cambió al normalizar (acentos, espacios, mayúsculas), hay que
+      // dejar redirección desde la URL vieja de privacidad.me.
+      if (origHandle && origHandle.replace(/^@+/, '') !== p.username) {
+        notes.push('El usuario cambió de "@' + origHandle.replace(/^@+/, '') + '" a "@' + p.username +
+                   '" al normalizar: configura la redirección 301 desde la URL antigua.');
+      }
       p.name = u.name || u.display_name || p.username;
       p.bio = u.littlelink_description || u.description || u.bio || '';
       const av = u.image || u.img || u.avatar || u.picture || '';
@@ -244,7 +328,7 @@ const PrivStore = (() => {
       const out = normalize(p);
       if (notes.length) out._migrationNotes = notes;
       return out;
-    });
+    }));
   }
   function setVerified(username, verified) {
     const d = load(username); if (!d) return null; d.verified = !!verified; return save(d);
@@ -362,7 +446,31 @@ const PrivStore = (() => {
     return lines.join('\r\n');
   }
   function vcardHref(page) { return 'data:text/vcard;charset=utf-8,' + encodeURIComponent(contactToVcard(page)); }
-  function profileUrl(d) { return 'https://privtr.ee/@' + (d.username || ''); }
+  // --- URLs de perfil -------------------------------------------------------
+  // Canónica (compartir, QR, og:url): siempre la bonita del dominio final.
+  // Interna (navegar dentro del sitio): u.html?u=… , que funciona igual en un
+  // host estático sin reescrituras que detrás de nginx/Apache con /@usuario.
+  const PROFILE_ORIGIN = 'https://privtr.ee';
+  function profilePath(username) { return '/@' + sanitizeUsername(username); }
+  function profileUrl(d) {
+    const u = sanitizeUsername(typeof d === 'string' ? d : (d && d.username) || '');
+    return PROFILE_ORIGIN + '/@' + u;
+  }
+  function profileHref(username) { return 'u.html?u=' + encodeURIComponent(sanitizeUsername(username)); }
+  // Extrae el @usuario de una URL/ruta: /@ana, ?u=ana, #@ana o "@ana".
+  function usernameFromLocation(loc) {
+    loc = loc || (typeof location !== 'undefined' ? location : null);
+    if (!loc) return '';
+    try {
+      const q = new URLSearchParams(loc.search || '').get('u');
+      if (q) return sanitizeUsername(q);
+    } catch (e) {}
+    const m = String(loc.pathname || '').match(/\/@([^/?#]+)/);
+    if (m) return sanitizeUsername(decodeURIComponent(m[1]));
+    const h = String(loc.hash || '').match(/^#\/?@?([^/?#]+)/);
+    if (h) return sanitizeUsername(decodeURIComponent(h[1]));
+    return '';
+  }
   function readImageFile(file, maxSide, maxBytes) {
     maxSide = maxSide || 1600; maxBytes = maxBytes || 450000;
     return new Promise(function (resolve, reject) {
@@ -619,11 +727,14 @@ const PrivStore = (() => {
     window.__privCopyEmail = function (email) { window.__privCopyText(email, 'email'); };
   }
   return {
-    SCHEMA_VERSION,
+    SCHEMA_VERSION, PROFILE_ORIGIN, RESERVED_USERNAMES, USERNAME_MIN,
     SOCIAL_DEFS, DOMAINS, PRESET_COLORS, BRANDS, ICON_PRESETS,
-    defaultPage, starkDemo, sanitizeUsername, load, save, normalize, migratePage,
+    defaultPage, starkDemo, sanitizeUsername, isReservedUsername, validateUsername,
+    load, save, normalize, migratePage,
     shapeClass, sizeClass, colorStyle, esc, safeUrl, safeImg, safeHex, renderProfile,
-    emptyContact, contactToVcard, vcardHref, readImageFile, faviconUrl, profileUrl,
-    listUsers, exportAll, importPages, saveImported, saveByUser, fromLinkStack, setVerified,
+    emptyContact, contactToVcard, vcardHref, readImageFile, faviconUrl,
+    profileUrl, profilePath, profileHref, usernameFromLocation,
+    listUsers, exportAll, importPages, dedupeUsernames, saveImported, saveByUser,
+    fromLinkStack, setVerified,
   };
 })();
